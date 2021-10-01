@@ -22,6 +22,5 @@ jobs:
         with:
           checkName: "Python Lint"
           path: ./
-          plugins: flake8-spellcheck
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
