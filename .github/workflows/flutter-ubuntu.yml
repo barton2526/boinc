@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
-          
+
       - name: Setup Java
         if: matrix.type == 'android'
         uses: actions/setup-java@v1
@@ -37,7 +37,7 @@ jobs:
 
       - name: Setup linux desktop
         if: matrix.type == 'linux'
-        run: flutter config --enable-linux-desktop  
+        run: flutter config --enable-linux-desktop
 
       - name: Install linux dependencies
         if: matrix.type == 'linux'
@@ -45,9 +45,41 @@ jobs:
           sudo apt update
           sudo apt install -y clang cmake ninja-build pkg-config libgtk-3-dev
 
+      - name: Configure Python
+        run: |
+          pip install boto3
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        if: matrix.type == 'linux'
+        with:
+          path: |
+            3rdParty/buildCache
+            !3rdParty/buildCache/linux/vcpkgcache/
+          key: linux-flutter-client-vcpkg-${{ hashFiles('3rdParty/*Linux*.sh', 'linux/*.sh', '.github/workflows/flutter-ubuntu.yml') }}
+
+      - name: Download vcpkg binary cache
+        if: matrix.type == 'linux'
+        run: |
+          python ./deploy/manage_vcpkg_archive_cache.py download 3rdParty/buildCache/linux/vcpkgcache/vcpkg/archives/ linux "edu.berkeley.boinc.github.actions.build.vcpkg.binary.cache"
+
       - name: Build linux client
         if: matrix.type == 'linux'
         run: samples/flutter/ci_build_linux.sh
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        if: matrix.type == 'android'
+        with:
+          path: |
+            3rdParty/buildCache
+            !3rdParty/buildCache/android/vcpkgcache/
+          key: android-manager-vcpkg-${{ hashFiles('android/*.sh') }}
+
+      - name: Download vcpkg binary cache
+        if: matrix.type == 'android'
+        run: |
+          python ./deploy/manage_vcpkg_archive_cache.py download 3rdParty/buildCache/android/vcpkgcache/vcpkg/archives/ android "edu.berkeley.boinc.github.actions.build.vcpkg.binary.cache"
 
       - name: Build android client
         if: matrix.type == 'android'
@@ -55,7 +87,7 @@ jobs:
 
       - name: Install flutter dependencies
         run: cd samples/flutter/boinc/ && flutter pub get
-        
+
       - name: Build linux
         if: matrix.type == 'linux'
         run: |
@@ -76,14 +108,14 @@ jobs:
         if: success() && matrix.type == 'android'
         uses: edgarrc/action-7z@v1.0.4
         with:
-          args: 7z a -t7z -mx=9 deploy/flutter_${{ matrix.type }}.7z -r0 samples/flutter/boinc/build/app/outputs/flutter-apk/app-release.apk     
+          args: 7z a -t7z -mx=9 deploy/flutter_${{ matrix.type }}.7z -r0 samples/flutter/boinc/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Prepare linux
         if: success() && matrix.type == 'linux'
         uses: edgarrc/action-7z@v1.0.4
         with:
           args: 7z a -t7z -mx=9 deploy/flutter_${{ matrix.type }}.7z -r0 samples/flutter/boinc/build/linux/x64/release/bundle/*
-      
+
       - name: Upload ${{ matrix.type }}
         if: success()
         uses: actions/upload-artifact@v2
