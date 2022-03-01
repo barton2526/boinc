@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: ${{ matrix.configuration }}-${{ matrix.platform }}-build
-    runs-on: windows-latest
+    runs-on: windows-2019
     strategy:
       matrix:
         platform: [x64, ARM64]
@@ -104,6 +104,11 @@ jobs:
         with:
           name: win_manager_${{ matrix.platform }}_${{ github.event.pull_request.head.sha }}
           path: deploy/win_manager.7z
+      - name: Upload symbol files
+        uses: actions/upload-artifact@v2
+        with:
+          name: win_pdb_${{ matrix.platform }}_${{ github.event.pull_request.head.sha }}
+          path: win_build/Build/${{ matrix.platform }}/${{ matrix.configuration }}/*.pdb
 
       - name: Upload Google Tests Results
         if: always() && matrix.platform == 'x64'
